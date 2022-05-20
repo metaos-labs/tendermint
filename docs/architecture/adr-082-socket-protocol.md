@@ -116,6 +116,14 @@ There is a set of related alternatives to consider:
   the core and invest in making it good enough that we do not require other
   options.
 
+**One important consideration** when discussing these questions is that _any
+outcome which includes keeping the socket protocol will have eventual migration
+impacts for clients_ regardless. To fix the limitations of the socket protocol
+as it is currently designed will require making _breaking changes_ to the
+protocol.  So, while we may put off a migration cost for clients by retaining
+the socket protocol in the short term, we will eventually have to pay those
+costs to fix the problems in its current design.
+
 ## Detailed Design
 
 1. If we choose to standardize on gRPC, the main work in in Tendermint core
