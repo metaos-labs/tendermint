@@ -62,14 +62,15 @@ applications using it. In particular:
 
 - The protocol lacks method identifiers, so the only way for the client and
   server to understand which operation is requested is to dispatch on the type
-  of the request and response payloads. For responses, this means that any
+  of the request and response payloads. For responses, this means that [any
   error condition is terminal not only to the request, but to the entire ABCI
-  connection.
+  client](https://github.com/tendermint/tendermint/blob/master/abci/client/socket_client.go#L149).
 
-  The intent historically seems to have been that all ABCI errors are protocol
-  fatal. In practice, however, this greatly complicates debugging a faulty
-  node, since the only way to respond to errors it to panic the node which
-  loses valuable context that could have been logged.
+  The intent of terminating for any error historically seems to have been that
+  all ABCI errors are unrecoverable and henceprotocol fatal.  In practice,
+  however, this greatly complicates debugging a faulty node, since the only way
+  to respond to errors it to panic the node which loses valuable context that
+  could have been logged.
 
 - There are subtle concurrency management dependencies between the client and
   the server that are not clearly documented anywhere, and it is very easy for
