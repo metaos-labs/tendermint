@@ -188,5 +188,23 @@ costs to fix the problems in its current design.
 
 [abci]: https://github.com/tendermint/spec/tree/master/spec/abci
 [socket-client]: https://github.com/tendermint/tendermint/blob/master/abci/client/socket_client.go
+[socket-server]: https://github.com/tendermint/tendermint/blob/master/abci/server/socket_server.go
 [grpc-client]: https://github.com/tendermint/tendermint/blob/master/abci/client/grpc_client.go
 [abci-start]: https://github.com/tendermint/abci/commit/1ab3c747182aaa38418258679c667090c2bb1e0d
+
+## Appendix: Known Implementations of ABCI Socket Protocol
+
+This is a list of known implementations of the Tendermint custom socket
+protocol. Note that in most cases I have not checked how complete or correct
+these implementations are; these are based on search results and a cursory
+visual inspection.
+
+- Tendermint Core (Go): [client][socket-client], [server][socket-server]
+- Informal Systems [tendermint-rs](https://github.com/informalsystems/tendermint-rs) (Rust): [client](https://github.com/informalsystems/tendermint-rs/blob/master/abci/src/client.rs), [server](https://github.com/informalsystems/tendermint-rs/blob/master/abci/src/server.rs)
+- Tendermint [js-abci](https://github.com/tendermint/js-abci) (JS): [server](https://github.com/tendermint/js-abci/blob/master/src/server.js)
+- [Hotmoka](https://github.com/Hotmoka/hotmoka) ABCI (Java): [server](https://github.com/Hotmoka/hotmoka/blob/master/io-hotmoka-tendermint-abci/src/main/java/io/hotmoka/tendermint_abci/Server.java)
+- [Tower ABCI](https://github.com/penumbra-zone/tower-abci) (Rust): [server](https://github.com/penumbra-zone/tower-abci/blob/main/src/server.rs)
+- [abci-host](https://github.com/datopia/abci-host) (Clojure): [server](https://github.com/datopia/abci-host/blob/master/src/abci/host.clj)
+- [abci_server](https://github.com/KrzysiekJ/abci_server) (Erlang): [server](https://github.com/KrzysiekJ/abci_server/blob/master/src/abci_server.erl)
+- [py-abci](https://github.com/davebryson/py-abci) (Python): [server](https://github.com/davebryson/py-abci/blob/master/src/abci/server.py)
+- [scala-tendermint-server](https://github.com/intechsa/scala-tendermint-server) (Scala): [server](https://github.com/InTechSA/scala-tendermint-server/blob/master/src/main/scala/lu/intech/tendermint/Server.scala)
