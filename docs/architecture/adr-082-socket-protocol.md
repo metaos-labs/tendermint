@@ -79,10 +79,12 @@ applications using it. In particular:
   https://github.com/tendermint/tendermint/pull/8581.
 
 These limitations are fixable, but one important question is whether it is
-worthwhile to fix them.  The stability and language coverage of gRPC have
-improved a lot, and today it is probably simpler to set up and maintain an
-application using gRPC transport than to reimplement the Tendermint socket
-protocol.
+worthwhile to fix them.  We can add request and method identifiers, for
+example, but doing so would be a breaking change to the protocol requiring
+every application using it to update.  If applications have to migrate anyway,
+the stability and language coverage of gRPC have improved a lot, and today it
+is probably simpler to set up and maintain an application using gRPC transport
+than to reimplement the Tendermint socket protocol.
 
 Moreover, gRPC addresses all the above issues out-of-the-box, and requires
 (much) less custom code for both the server (i.e., the application) and the
@@ -132,6 +134,17 @@ costs to fix the problems in its current design.
    Besides the code cleanup, we will also need to clearly document a
    deprecation schedule, and invest time in making the migration easier for
    applications currently using the socket protocol.
+
+   > **Point for discussion:** Migrating from the socket protocol to gRPC
+   > should mostly be a plumbing change, as long as we do it during a release
+   > in which we are not making other breaking changes to ABCI. However, the
+   > effort may be more or less depending on how gRPC integration works in the
+   > application's implementation language, and would have to be sure networks
+   > have plenty of time not only to make the change but to verify that it
+   > preserves the function of the network.
+   >
+   > What questions should we be asking node operators and application
+   > developers to understand the migration costs better?
 
 3. If we choose to keep only the socket protocol, we will need to follow up
    with a more detailed design for extending and upgrading the protocol to fix
