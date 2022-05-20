@@ -163,7 +163,7 @@ costs to fix the problems in its current design.
    - ✅ Aligns well with Cosmos SDK, which already uses gRPC extensively.
    - ✅ Aligns well priv validator interface, for which the socket protocol is already deprecated for gRPC.
    - ❓ Applications will be hard to implement in a language without gRPC support.
-   - ⛔ All users of the socket protocol have to migrate to gRPC.
+   - ⛔ All users of the socket protocol have to migrate to gRPC, and we believe most current out-of-process applications use the socket protocol.
 
 - **Standardize on socket protocol**
 
