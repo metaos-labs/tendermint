@@ -66,10 +66,10 @@ applications using it. In particular:
   error condition is terminal not only to the request, but to the entire ABCI
   client](https://github.com/tendermint/tendermint/blob/master/abci/client/socket_client.go#L149).
 
-  The intent of terminating for any error historically seems to have been that
-  all ABCI errors are unrecoverable and henceprotocol fatal.  In practice,
+  The historical intent of terminating for any error seems to have been that
+  all ABCI errors are unrecoverable and hence protocol fatal.  In practice,
   however, this greatly complicates debugging a faulty node, since the only way
-  to respond to errors it to panic the node which loses valuable context that
+  to respond to errors is to panic the node which loses valuable context that
   could have been logged.
 
 - There are subtle concurrency management dependencies between the client and
@@ -146,7 +146,7 @@ costs to fix the problems in its current design.
    > What questions should we be asking node operators and application
    > developers to understand the migration costs better?
 
-3. If we choose to keep only the socket protocol, we will need to follow up
+2. If we choose to keep only the socket protocol, we will need to follow up
    with a more detailed design for extending and upgrading the protocol to fix
    the existing performance and operational issues with the protocol.
 
