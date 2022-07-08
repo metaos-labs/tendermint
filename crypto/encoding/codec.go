@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/crypto/bls"
+	"github.com/tendermint/tendermint/crypto/composite"
 	"github.com/tendermint/tendermint/crypto/ed25519"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
 	"github.com/tendermint/tendermint/libs/json"
@@ -14,12 +16,37 @@ func init() {
 	json.RegisterType((*pc.PublicKey)(nil), "tendermint.crypto.PublicKey")
 	json.RegisterType((*pc.PublicKey_Ed25519)(nil), "tendermint.crypto.PublicKey_Ed25519")
 	json.RegisterType((*pc.PublicKey_Secp256K1)(nil), "tendermint.crypto.PublicKey_Secp256K1")
+	json.RegisterType((*pc.PublicKey_Composite)(nil), "tendermint.crypto.PublicKey_Composite")
+	json.RegisterType((*pc.PublicKey_Bls12)(nil), "tendermint.crypto.PublicKey_Bls12")
 }
 
 // PubKeyToProto takes crypto.PubKey and transforms it to a protobuf Pubkey
 func PubKeyToProto(k crypto.PubKey) (pc.PublicKey, error) {
 	var kp pc.PublicKey
 	switch k := k.(type) {
+	case composite.PubKey:
+		blsKey, err := PubKeyToProto(k.BlsKey)
+		if err != nil {
+			return kp, err
+		}
+		signKey, err := PubKeyToProto(k.SignKey)
+		if err != nil {
+			return kp, err
+		}
+		kp = pc.PublicKey{
+			Sum: &pc.PublicKey_Composite{
+				Composite: &pc.CompositePublicKey{
+					BlsKey:  &blsKey,
+					SignKey: &signKey,
+				},
+			},
+		}
+	case bls.PubKey:
+		kp = pc.PublicKey{
+			Sum: &pc.PublicKey_Bls12{
+				Bls12: k[:],
+			},
+		}
 	case ed25519.PubKey:
 		kp = pc.PublicKey{
 			Sum: &pc.PublicKey_Ed25519{
@@ -41,6 +68,29 @@ func PubKeyToProto(k crypto.PubKey) (pc.PublicKey, error) {
 // PubKeyFromProto takes a protobuf Pubkey and transforms it to a crypto.Pubkey
 func PubKeyFromProto(k pc.PublicKey) (crypto.PubKey, error) {
 	switch k := k.Sum.(type) {
+	case *pc.PublicKey_Composite:
+		var pk composite.PubKey
+		blsKey, err := PubKeyFromProto(*k.Composite.BlsKey)
+		if err != nil {
+			return pk, err
+		}
+		signKey, err := PubKeyFromProto(*k.Composite.SignKey)
+		if err != nil {
+			return pk, err
+		}
+		pk = composite.PubKey{
+			BlsKey:  blsKey,
+			SignKey: signKey,
+		}
+		return pk, nil
+	case *pc.PublicKey_Bls12:
+		if len(k.Bls12) != bls.PubKeySize {
+			return nil, fmt.Errorf("invalid size for PubKeyBls12. Got %d, expected %d",
+				len(k.Bls12), ed25519.PubKeySize)
+		}
+		pk := bls.PubKey{}
+		copy(pk[:], k.Bls12)
+		return pk, nil
 	case *pc.PublicKey_Ed25519:
 		if len(k.Ed25519) != ed25519.PubKeySize {
 			return nil, fmt.Errorf("invalid size for PubKeyEd25519. Got %d, expected %d",
