@@ -6,7 +6,7 @@ import (
 	"crypto/subtle"
 	"fmt"
 
-	tmjson "github.com/line/ostracon/libs/json"
+	tmjson "github.com/tendermint/tendermint/libs/json"
 
 	"github.com/herumi/bls-eth-go-binary/bls"
 
