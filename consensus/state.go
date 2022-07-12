@@ -849,7 +849,6 @@ func (cs *State) handleMsg(mi msgInfo) {
 			)
 			err = nil
 		}
-
 	case *VoteMessage:
 		// attempt to add the vote and dupeout the validator if its a duplicate signature
 		// if the vote gives us a 2/3-any or 2/3-one, we transition

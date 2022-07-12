@@ -11,6 +11,7 @@ import (
 	gogotypes "github.com/gogo/protobuf/types"
 
 	"github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/crypto/bls"
 	"github.com/tendermint/tendermint/crypto/merkle"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 	"github.com/tendermint/tendermint/libs/bits"
@@ -744,6 +745,8 @@ type Commit struct {
 	BlockID    BlockID     `json:"block_id"`
 	Signatures []CommitSig `json:"signatures"`
 
+	AggregatedSignature []byte `json:"aggregated_signature"`
+
 	// Memoized in first call to corresponding method.
 	// NOTE: can't memoize in constructor because constructor isn't used for
 	// unmarshaling.
@@ -766,16 +769,64 @@ func NewCommit(height int64, round int32, blockID BlockID, commitSigs []CommitSi
 // Inverse of VoteSet.MakeCommit().
 func CommitToVoteSet(chainID string, commit *Commit, vals *ValidatorSet) *VoteSet {
 	voteSet := NewVoteSet(chainID, commit.Height, commit.Round, tmproto.PrecommitType, vals)
+	blsPubKeys := make([]bls.PubKey, 0, len(commit.Signatures))
+	msgs := make([][]byte, 0, len(commit.Signatures))
 	for idx, commitSig := range commit.Signatures {
 		if commitSig.Absent() {
 			continue // OK, some precommits can be missing.
 		}
-		added, err := voteSet.AddVote(commit.GetVote(int32(idx)))
+		vote := commit.GetVote(int32(idx))
+		added, err := voteSet.AddVote(vote)
 		if !added || err != nil {
-			panic(fmt.Sprintf("Failed to reconstruct LastCommit: %v", err))
+			panic(fmt.Sprintf("Failed to reconstruct LastCommit from Votes: %v", err))
+		}
+
+		if vote.Signature == nil {
+			// Ensure that signer is a validator.
+			addr, voter := vals.GetByIndex(vote.ValidatorIndex)
+			if voter == nil || addr == nil {
+				panic(fmt.Sprintf("Cannot find voter %d in voterSet of size %d", vote.ValidatorIndex, vals.Size()))
+			}
+			msg := VoteSignBytes(chainID, vote.ToProto())
+			if blsPubKey, ok := voter.PubKey.(bls.PubKey); ok {
+				blsPubKeys = append(blsPubKeys, blsPubKey)
+			} else {
+				panic(fmt.Errorf("signature %d has been omitted, even though it is not a BLS key", idx))
+			}
+
+			msgs = append(msgs, msg)
 		}
 	}
+
+	if commit.AggregatedSignature != nil {
+		err := bls.VerifyAggregatedSignature(commit.AggregatedSignature, blsPubKeys, msgs)
+		if err != nil {
+			panic(fmt.Sprintf("Failed to VerifyAggregatedSignature : %v", err))
+		}
+	}
+
 	return voteSet
+}
+
+func (commit *Commit) AggregateSignatures() {
+	if commit.AggregatedSignature != nil {
+		panic("The commit is already aggregated")
+	}
+	var err error
+	for i := 0; i < len(commit.Signatures); i++ {
+		if !commit.Signatures[i].Absent() && len(commit.Signatures[i].Signature) == bls.SignatureSize {
+			if commit.AggregatedSignature == nil {
+				commit.AggregatedSignature = commit.Signatures[i].Signature
+			} else {
+				commit.AggregatedSignature, err = bls.AddSignature(commit.AggregatedSignature,
+					commit.Signatures[i].Signature)
+				if err != nil {
+					panic(fmt.Sprintf("fail to aggregate signature: %s\n", err))
+				}
+			}
+			// commit.Signatures[i].Signature = nil
+		}
+	}
 }
 
 // GetVote converts the CommitSig for the given valIdx to a Vote.
@@ -896,7 +947,7 @@ func (commit *Commit) Hash() tmbytes.HexBytes {
 		return nil
 	}
 	if commit.hash == nil {
-		bs := make([][]byte, len(commit.Signatures))
+		bs := make([][]byte, len(commit.Signatures)+1)
 		for i, commitSig := range commit.Signatures {
 			pbcs := commitSig.ToProto()
 			bz, err := pbcs.Marshal()
@@ -906,6 +957,7 @@ func (commit *Commit) Hash() tmbytes.HexBytes {
 
 			bs[i] = bz
 		}
+		bs[len(bs)-1] = commit.AggregatedSignature
 		commit.hash = merkle.HashFromByteSlices(bs)
 	}
 	return commit.hash
@@ -924,12 +976,14 @@ func (commit *Commit) StringIndented(indent string) string {
 %s  Height:     %d
 %s  Round:      %d
 %s  BlockID:    %v
+%s  AggregatedSignature: %X
 %s  Signatures:
 %s    %v
 %s}#%v`,
 		indent, commit.Height,
 		indent, commit.Round,
 		indent, commit.BlockID,
+		indent, tmbytes.Fingerprint(commit.AggregatedSignature),
 		indent,
 		indent, strings.Join(commitSigStrings, "\n"+indent+"    "),
 		indent, commit.hash)
@@ -952,6 +1006,7 @@ func (commit *Commit) ToProto() *tmproto.Commit {
 	c.Round = commit.Round
 	c.BlockID = commit.BlockID.ToProto()
 
+	c.AggregatedSignature = commit.AggregatedSignature
 	return c
 }
 
@@ -982,6 +1037,7 @@ func CommitFromProto(cp *tmproto.Commit) (*Commit, error) {
 	commit.Height = cp.Height
 	commit.Round = cp.Round
 	commit.BlockID = *bi
+	commit.AggregatedSignature = cp.AggregatedSignature
 
 	return commit, commit.ValidateBasic()
 }

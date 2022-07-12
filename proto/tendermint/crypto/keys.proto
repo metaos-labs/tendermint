@@ -5,14 +5,6 @@ option go_package = "github.com/tendermint/tendermint/proto/tendermint/crypto";
 
 import "gogoproto/gogo.proto";
 
-// CompositePublicKey allows to use different public keys for different features
-message CompositePublicKey {
-  option (gogoproto.compare) = true;
-  option (gogoproto.equal)   = true;
-
-  PublicKey bls_key = 1;
-  PublicKey sign_key  = 2;
-}
 
 // PublicKey defines the keys available for use with Tendermint Validators
 message PublicKey {
@@ -23,7 +15,6 @@ message PublicKey {
     bytes ed25519   = 1;
     bytes secp256k1 = 2;
 
-    CompositePublicKey composite = 100;
-    bytes bls12 = 101;
+    bytes bls12 = 100;
   }
 }
