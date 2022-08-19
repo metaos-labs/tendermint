@@ -781,7 +781,7 @@ func CommitToVoteSet(chainID string, commit *Commit, vals *ValidatorSet) *VoteSe
 			panic(fmt.Sprintf("Failed to reconstruct LastCommit from Votes: %v", err))
 		}
 
-		if vote.Signature == nil {
+		if vote.Signature != nil {
 			// Ensure that signer is a validator.
 			addr, voter := vals.GetByIndex(vote.ValidatorIndex)
 			if voter == nil || addr == nil {
